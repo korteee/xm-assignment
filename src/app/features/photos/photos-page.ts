@@ -1,9 +1,14 @@
 import { Component, inject } from '@angular/core';
 import { MatButton } from '@angular/material/button';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { Favorites } from '../../core/favorites';
+import { Photo } from '../../core/photo';
 import { PAGE_SIZE, PhotoStream } from '../../core/photo-stream';
 import { InfiniteScroll } from '../../shared/infinite-scroll/infinite-scroll';
 import { PhotoCard } from '../../shared/photo-card/photo-card';
 import { PhotoGrid } from '../../shared/photo-grid/photo-grid';
+
+const SNACKBAR_DURATION_MS = 3000;
 
 /** Photostream page at `/`. */
 @Component({
@@ -56,7 +61,12 @@ import { PhotoGrid } from '../../shared/photo-grid/photo-grid';
     <h1>Photos</h1>
     <app-photo-grid>
       @for (photo of stream.photos(); track photo.id; let i = $index) {
-        <app-photo-card [photo]="photo" [priority]="i < priorityCount" />
+        <app-photo-card
+          [photo]="photo"
+          [favorite]="favorites.has(photo.id)"
+          [priority]="i < priorityCount"
+          (toggleFavorite)="toggleFavorite($event)"
+        />
       }
       @if (stream.status() === 'loading') {
         @for (n of skeletons; track n) {
@@ -87,10 +97,20 @@ import { PhotoGrid } from '../../shared/photo-grid/photo-grid';
 })
 export class PhotosPage {
   protected readonly stream = inject(PhotoStream);
+  protected readonly favorites = inject(Favorites);
+  private readonly snackBar = inject(MatSnackBar);
 
   /** Tiles visible on load (two desktop rows) load first; see the photo-card priority input. */
   protected readonly priorityCount = 6;
 
   /** One skeleton tile per photo in the page that is loading. */
   protected readonly skeletons = Array.from({ length: PAGE_SIZE }, (_, i) => i);
+
+  /** Toggles the photo's favorite and confirms the change. A new snackbar replaces an open one. */
+  protected toggleFavorite({ id }: Photo): void {
+    const added = this.favorites.toggle(id);
+    this.snackBar.open(`Photo ${id} ${added ? 'added to' : 'removed from'} favorites`, undefined, {
+      duration: SNACKBAR_DURATION_MS,
+    });
+  }
 }

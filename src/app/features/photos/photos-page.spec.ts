@@ -1,15 +1,23 @@
+import { HarnessLoader } from '@angular/cdk/testing';
+import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
+import { MATERIAL_ANIMATIONS } from '@angular/material/core';
+import { MatSnackBarHarness } from '@angular/material/snack-bar/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { LOCAL_STORAGE } from '../../core/local-storage';
 import { PhotoApi } from '../../core/photo-api';
 import { FakeIntersectionObserver } from '../../testing/fake-intersection-observer';
 import { FakePhotoApi, photos } from '../../testing/fake-photo-api';
+import { MemoryStorage } from '../../testing/memory-storage';
 import { PhotosPage } from './photos-page';
 
 const ids = (from: number, count: number) => Array.from({ length: count }, (_, i) => from + i);
 
 describe('PhotosPage', () => {
   let api: FakePhotoApi;
+  let storage: MemoryStorage;
   let fixture: ComponentFixture<PhotosPage>;
   let page: HTMLElement;
+  let loader: HarnessLoader;
 
   /** Makes the sentinel report that it is near the viewport. */
   async function scrollNearEnd(): Promise<void> {
@@ -33,14 +41,27 @@ describe('PhotosPage', () => {
   const skeletons = () => page.querySelectorAll('app-photo-grid .skeleton');
   const status = () => page.querySelector('[role="status"]');
 
+  /** Creates the page. Arrange stored favorites before calling this: they restore on creation. */
+  async function createPage(): Promise<void> {
+    fixture = TestBed.createComponent(PhotosPage);
+    page = fixture.nativeElement;
+    loader = TestbedHarnessEnvironment.documentRootLoader(fixture);
+    await fixture.whenStable();
+  }
+
   beforeEach(async () => {
     FakeIntersectionObserver.instances = [];
     vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver);
     api = new FakePhotoApi();
-    TestBed.configureTestingModule({ providers: [{ provide: PhotoApi, useValue: api }] });
-    fixture = TestBed.createComponent(PhotosPage);
-    page = fixture.nativeElement;
-    await fixture.whenStable();
+    storage = new MemoryStorage();
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: PhotoApi, useValue: api },
+        { provide: LOCAL_STORAGE, useValue: storage },
+        { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } },
+      ],
+    });
+    await createPage();
   });
 
   afterEach(() => vi.unstubAllGlobals());
@@ -133,6 +154,81 @@ describe('PhotosPage', () => {
       expect(tiles()).toHaveLength(18);
       expect(status()?.textContent).not.toContain("Couldn't load photos.");
       expect(retry()).toBeUndefined();
+    });
+  });
+
+  describe('favorites', () => {
+    /** Loads a page of photos 100-117 and returns the tile button for `id`. */
+    async function loadedTile(id: number): Promise<HTMLButtonElement> {
+      await scrollNearEnd();
+      FakeIntersectionObserver.instances.at(-1)!.report(false);
+      await respond(...ids(100, 18));
+      return page.querySelectorAll<HTMLButtonElement>('app-photo-card button')[id - 100];
+    }
+
+    it('toggles the favorite when a tile is activated', async () => {
+      const tile = await loadedTile(100);
+      expect(tile.getAttribute('aria-pressed')).toBe('false');
+
+      tile.click();
+      await fixture.whenStable();
+
+      expect(tile.getAttribute('aria-pressed')).toBe('true');
+      expect(tile.querySelector('mat-icon')?.classList).toContain('filled');
+      expect(storage.getItem('xm-photo-library.favorites.v1')).toBe('[100]');
+
+      tile.click();
+      await fixture.whenStable();
+
+      expect(tile.getAttribute('aria-pressed')).toBe('false');
+      expect(tile.querySelector('mat-icon')?.classList).not.toContain('filled');
+    });
+
+    it('confirms each add and remove with a snackbar that has no action', async () => {
+      const tile = await loadedTile(100);
+
+      tile.click();
+      await fixture.whenStable();
+      const added = await loader.getHarness(MatSnackBarHarness);
+      expect(await added.getMessage()).toBe('Photo 100 added to favorites');
+      expect(await added.hasAction()).toBe(false);
+
+      tile.click();
+      await fixture.whenStable();
+      const removed = await loader.getHarness(MatSnackBarHarness);
+      expect(await removed.getMessage()).toBe('Photo 100 removed from favorites');
+    });
+
+    it('keeps keyboard focus on the tile when the snackbar opens', async () => {
+      const tile = await loadedTile(100);
+      tile.focus();
+
+      tile.click();
+      await fixture.whenStable();
+      await loader.getHarness(MatSnackBarHarness);
+
+      expect(document.activeElement).toBe(tile);
+    });
+
+    it('shows favorites that were saved before the page opened', async () => {
+      // The store restores when it is created, so build the page again with saved data.
+      TestBed.resetTestingModule();
+      storage = new MemoryStorage();
+      storage.setItem('xm-photo-library.favorites.v1', '[101]');
+      TestBed.configureTestingModule({
+        providers: [
+          { provide: PhotoApi, useValue: api },
+          { provide: LOCAL_STORAGE, useValue: storage },
+          { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } },
+        ],
+      });
+      await createPage();
+
+      await loadedTile(100);
+
+      const tiles = page.querySelectorAll('app-photo-card button');
+      expect(tiles[0].getAttribute('aria-pressed')).toBe('false');
+      expect(tiles[1].getAttribute('aria-pressed')).toBe('true');
     });
   });
 
