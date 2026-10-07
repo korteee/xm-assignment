@@ -6,6 +6,8 @@ import { FavoritesPage } from './features/favorites/favorites-page';
 import { NotFoundPage } from './features/not-found/not-found-page';
 import { PhotoDetailPage } from './features/photo-detail/photo-detail-page';
 import { PhotosPage } from './features/photos/photos-page';
+import { PhotoApi } from './core/photo-api';
+import { FakeIntersectionObserver } from './testing/fake-intersection-observer';
 
 describe('routes', () => {
   let harness: RouterTestingHarness;
@@ -46,5 +48,49 @@ describe('routes', () => {
 
       expect(TestBed.inject(Router).url).toBe('/');
     });
+  });
+});
+
+describe('Photos route (integration)', () => {
+  let harness: RouterTestingHarness;
+
+  const tileIds = () =>
+    Array.from(
+      (harness.routeNativeElement as HTMLElement).querySelectorAll('app-photo-card img'),
+      (img) => img.getAttribute('alt'),
+    );
+
+  beforeEach(async () => {
+    // Fake only the interval timers RxJS uses for the API delay; Angular's scheduler keeps real timers.
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    FakeIntersectionObserver.instances = [];
+    vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver);
+    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+    harness = await RouterTestingHarness.create();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it('loads photos on / and keeps them after visiting Favorites', async () => {
+    const getPhotos = vi.spyOn(TestBed.inject(PhotoApi), 'getPhotos');
+    await harness.navigateByUrl('/', PhotosPage);
+
+    FakeIntersectionObserver.instances.at(-1)!.report(true);
+    await harness.fixture.whenStable();
+    FakeIntersectionObserver.instances.at(-1)!.report(false);
+    await vi.advanceTimersByTimeAsync(300);
+    await harness.fixture.whenStable();
+
+    const firstVisit = tileIds();
+    expect(firstVisit).toHaveLength(18);
+
+    await harness.navigateByUrl('/favorites', FavoritesPage);
+    await harness.navigateByUrl('/', PhotosPage);
+
+    expect(tileIds()).toEqual(firstVisit);
+    expect(getPhotos).toHaveBeenCalledTimes(1);
   });
 });
