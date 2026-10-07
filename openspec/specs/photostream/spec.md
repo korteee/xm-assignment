@@ -101,7 +101,6 @@ The first 6 tiles SHALL be marked as priority so their images load before the re
 - **WHEN** the first page is shown
 - **THEN** the first 6 tiles are priority and the rest load lazily
 
-
 ### Requirement: Toggle favorites from the stream
 
 Every tile on `/` SHALL show whether its photo is a favorite. Activating a tile SHALL toggle that photo's favorite and update the tile's heart and pressed state right away. Tiles whose image failed to load SHALL NOT change the favorites.

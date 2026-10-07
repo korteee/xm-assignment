@@ -89,7 +89,6 @@ When the browser blocks reading or writing `localStorage`, or a write fails (for
 - **THEN** photo `42` is a favorite for the rest of the session
 - **AND** no error is thrown
 
-
 ### Requirement: Remove a favorite
 
 The favorites SHALL offer an explicit removal of one photo. Removing a favorite SHALL take it out of the list and save the change. Removing a photo that is not a favorite SHALL change nothing.
