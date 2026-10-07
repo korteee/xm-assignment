@@ -2,7 +2,7 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 
 # Project: xm-assignment
 
-A photo library: an infinite random photostream with a persistent "Favorites" list. The full brief is in `ASSIGNMENT.md`; read it before changing behavior. This repo is public and reviewed, so keep code clean and the git history tidy.
+A photo library: an infinite random photostream with a persistent "Favorites" list. This repo is public and reviewed, so keep code clean and the git history tidy.
 
 ## Stack
 
@@ -15,24 +15,16 @@ A photo library: an infinite random photostream with a persistent "Favorites" li
 
 Standalone components only (no NgModules). Structure by responsibility:
 
-- `src/app/core/` - singleton services: photo API (fake), favorites, storage.
-- `src/app/shared/` - reusable UI and directives: photo grid, photo card, infinite-scroll directive.
-- `src/app/features/` - lazy-loaded route pages: `photos` (`/`), `favorites` (`/favorites`), `photo-detail` (`/photos/:id`), plus a not-found page.
-- The header (Photos / Favorites buttons, active view highlighted) is in the app shell and stays on every page, including the detail page.
+- `src/app/core/` - singleton services (data access, state, storage).
+- `src/app/shared/` - reusable UI components and directives, free of page-specific logic.
+- `src/app/features/` - lazy-loaded route pages, one folder per page.
+- App-wide chrome (such as the header) lives in the app shell, outside the routed pages.
 
-Feature pages stay thin and reuse the shared grid and card.
+Feature pages stay thin: they compose shared components and core services instead of duplicating them.
 
-## Behavior decisions (settled, do not re-litigate)
+## Specs
 
-- **Photo identity:** photos are `https://picsum.photos/id/{n}/{w}/{h}`; the numeric `n` is the photo ID. The grid uses a small size, the detail page a larger one (about 1200px wide) for the same ID. Never use the random, ID-less `picsum.photos/200/300` URL.
-- **Fake API:** `getPhotos({ page, limit })` (one typed params object) returns an `Observable<Photo[]>` delayed by a random 200-300 ms. Page size 18. IDs must not repeat in the stream.
-- **Infinite scroll:** a reusable directive built on `IntersectionObserver` and a sentinel at the bottom of the grid (`rootMargin` about 300px). Ignore triggers while a load is in flight. Show a loader while loading (`aria-live`) and a retry state on error.
-- **Stream state:** the loaded photos live in a root-scoped service signal, so switching Photos -> Favorites -> Photos keeps them. Enable router scroll position restoration.
-- **Favorites:** stored as photo IDs in `localStorage` under one versioned key; parse defensively (try/catch, validate shape). Persist across refresh.
-- **Toggling:** clicking a tile on `/` toggles the favorite. Every tile shows a heart indicator, filled when favorite and outlined when not. A `MatSnackBar` confirms each add and remove.
-- **Favorites page:** lists all favorites (no infinite scroll). Clicking a photo opens `/photos/:id`.
-- **Detail page:** shows one large photo and a "Remove from favorites" button. If the ID is not a current favorite or is invalid, show the not-found page. After removing, navigate to `/favorites` with a snackbar.
-- **Theme:** one fixed dark Material 3 theme, a Google Font loaded in `index.html`. No theme toggle.
+Behavior is defined in OpenSpec: `openspec/specs/<capability>/spec.md` is the source of truth, and `ASSIGNMENT.md` is the original brief. Change behavior through a change (`/opsx:propose`, then `/opsx:apply`), not by editing code or specs directly.
 
 ## Conventions
 
