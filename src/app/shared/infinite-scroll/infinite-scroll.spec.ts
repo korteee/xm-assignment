@@ -1,29 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { FakeIntersectionObserver } from '../../testing/fake-intersection-observer';
 import { InfiniteScroll } from './infinite-scroll';
-
-/** Stand-in for the browser's IntersectionObserver that the test drives by hand. */
-class FakeObserver {
-  static instances: FakeObserver[] = [];
-  readonly observed: Element[] = [];
-  disconnected = false;
-
-  constructor(
-    readonly callback: IntersectionObserverCallback,
-    readonly options?: IntersectionObserverInit,
-  ) {
-    FakeObserver.instances.push(this);
-  }
-
-  observe(element: Element): void {
-    this.observed.push(element);
-  }
-
-  disconnect(): void {
-    this.disconnected = true;
-    this.observed.length = 0;
-  }
-}
 
 @Component({
   imports: [InfiniteScroll],
@@ -41,8 +19,8 @@ describe('InfiniteScroll', () => {
   let sentinel: HTMLElement;
 
   beforeEach(async () => {
-    FakeObserver.instances = [];
-    vi.stubGlobal('IntersectionObserver', FakeObserver);
+    FakeIntersectionObserver.instances = [];
+    vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver);
     fixture = TestBed.createComponent(Host);
     await fixture.whenStable();
     sentinel = (fixture.nativeElement as HTMLElement).querySelector('[appInfiniteScroll]')!;
@@ -52,15 +30,15 @@ describe('InfiniteScroll', () => {
 
   /** Makes the fake observer report the sentinel as in or out of range. */
   async function report(isIntersecting: boolean): Promise<void> {
-    const [observer] = FakeObserver.instances;
+    const [observer] = FakeIntersectionObserver.instances;
     const entry = { isIntersecting, target: sentinel } as unknown as IntersectionObserverEntry;
     observer.callback([entry], observer as unknown as IntersectionObserver);
     await fixture.whenStable();
   }
 
   it('observes its element with a 300 px margin below the viewport', () => {
-    expect(FakeObserver.instances).toHaveLength(1);
-    const [observer] = FakeObserver.instances;
+    expect(FakeIntersectionObserver.instances).toHaveLength(1);
+    const [observer] = FakeIntersectionObserver.instances;
     expect(observer.options?.rootMargin).toBe('0px 0px 300px 0px');
     expect(observer.observed).toEqual([sentinel]);
   });
@@ -117,7 +95,7 @@ describe('InfiniteScroll', () => {
   });
 
   it('stops observing when destroyed', async () => {
-    const [observer] = FakeObserver.instances;
+    const [observer] = FakeIntersectionObserver.instances;
     const loadsBefore = fixture.componentInstance.loads;
 
     fixture.destroy();
