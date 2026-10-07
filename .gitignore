@@ -46,5 +46,5 @@ Thumbs.db
 # Local roadmap (OpenSpec changes are committed)
 /PLAN.md
 
-# Local AI tooling (OpenSpec commands and skills)
-/.claude/
+# Personal Claude Code settings (shared commands and skills are committed)
+/.claude/settings.local.json
