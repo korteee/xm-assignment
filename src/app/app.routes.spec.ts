@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { MATERIAL_ANIMATIONS } from '@angular/material/core';
+import { Title } from '@angular/platform-browser';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { App } from './app';
@@ -73,6 +74,56 @@ describe('routes', () => {
 
       expect(TestBed.inject(Router).url).toBe('/');
     });
+  });
+});
+
+describe('page titles', () => {
+  let harness: RouterTestingHarness;
+
+  const title = () => TestBed.inject(Title).getTitle();
+
+  beforeEach(async () => {
+    vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver);
+    TestBed.configureTestingModule({
+      providers: [provideRouter(routes), { provide: LOCAL_STORAGE, useValue: new MemoryStorage() }],
+    });
+    harness = await RouterTestingHarness.create();
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('names the page on / and on /favorites', async () => {
+    await harness.navigateByUrl('/', PhotosPage);
+    expect(title()).toBe('Photos | Photo Library');
+
+    await harness.navigateByUrl('/favorites', FavoritesPage);
+    expect(title()).toBe('Favorites | Photo Library');
+  });
+
+  it('names the photo on /photos/:id', async () => {
+    TestBed.inject(Favorites).toggle(42);
+
+    await harness.navigateByUrl('/photos/42', PhotoDetailPage);
+
+    expect(title()).toBe('Photo 42 | Photo Library');
+  });
+
+  it('follows the ID when it changes between two photo pages', async () => {
+    TestBed.inject(Favorites).toggle(42);
+    TestBed.inject(Favorites).toggle(7);
+    await harness.navigateByUrl('/photos/42', PhotoDetailPage);
+
+    await harness.navigateByUrl('/photos/7', PhotoDetailPage);
+
+    expect(title()).toBe('Photo 7 | Photo Library');
+  });
+
+  it.each(['/does-not-exist', '/photos/42'])('says the page was not found on %s', async (url) => {
+    await harness.navigateByUrl('/favorites', FavoritesPage);
+
+    await harness.navigateByUrl(url, NotFoundPage);
+
+    expect(title()).toBe('Page not found | Photo Library');
   });
 });
 
