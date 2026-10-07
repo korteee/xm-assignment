@@ -12,6 +12,8 @@ context: |
   - Favorites page: newest first; empty state is a message plus a link to Photos.
 
 rules:
+  design:
+    - Before deciding anything about a library or framework (Angular, Material, RxJS, Vitest), consult the Context7 MCP for current docs and base the decision on them.
   proposal:
     - One change is one reviewable step; state what is out of scope.
   tasks:
