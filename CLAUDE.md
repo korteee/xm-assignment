@@ -36,6 +36,7 @@ Feature pages stay thin and reuse the shared grid and card.
 
 ## Conventions
 
+- Look up library APIs (Angular, Material, RxJS, Vitest) with the Context7 MCP (declared in `.mcp.json`) before using or deciding on them, not from memory. Do this before every OpenSpec design.
 - Short JSDoc on services, directives, and public component inputs/outputs. No comment noise; comment the why, not the what.
 - Clickable photos are real `<button>` or `<a>` elements, never clickable `div`s. Images need meaningful `alt` text, focus must be visible, and the loader must be announced.
 - Format with Prettier and fix all `ng lint` findings; do not disable rules to get green.
