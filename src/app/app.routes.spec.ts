@@ -6,8 +6,11 @@ import { FavoritesPage } from './features/favorites/favorites-page';
 import { NotFoundPage } from './features/not-found/not-found-page';
 import { PhotoDetailPage } from './features/photo-detail/photo-detail-page';
 import { PhotosPage } from './features/photos/photos-page';
+import { Favorites } from './core/favorites';
+import { LOCAL_STORAGE } from './core/local-storage';
 import { PhotoApi } from './core/photo-api';
 import { FakeIntersectionObserver } from './testing/fake-intersection-observer';
+import { MemoryStorage } from './testing/memory-storage';
 
 describe('routes', () => {
   let harness: RouterTestingHarness;
@@ -48,6 +51,44 @@ describe('routes', () => {
 
       expect(TestBed.inject(Router).url).toBe('/');
     });
+  });
+});
+
+describe('Favorites route (integration)', () => {
+  let harness: RouterTestingHarness;
+
+  /** Opens `/favorites` with the given favorites already saved. */
+  async function openFavorites(saved: number[]): Promise<HTMLElement> {
+    const storage = new MemoryStorage();
+    storage.setItem('xm-photo-library.favorites.v1', JSON.stringify(saved));
+    TestBed.configureTestingModule({
+      providers: [provideRouter(routes), { provide: LOCAL_STORAGE, useValue: storage }],
+    });
+    harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/favorites', FavoritesPage);
+    return harness.routeNativeElement as HTMLElement;
+  }
+
+  it('lists saved favorites newest first and opens a photo from its tile', async () => {
+    const page = await openFavorites([7, 3]);
+
+    const links = Array.from(page.querySelectorAll('app-photo-card a'));
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/photos/3', '/photos/7']);
+
+    (links[0] as HTMLAnchorElement).click();
+    await harness.fixture.whenStable();
+
+    expect(TestBed.inject(Router).url).toBe('/photos/3');
+    expect(TestBed.inject(Favorites).ids()).toEqual([7, 3]);
+  });
+
+  it('goes to Photos from the empty state', async () => {
+    const page = await openFavorites([]);
+
+    (page.querySelector('a') as HTMLAnchorElement).click();
+    await harness.fixture.whenStable();
+
+    expect(TestBed.inject(Router).url).toBe('/');
   });
 });
 
