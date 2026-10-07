@@ -30,6 +30,15 @@ export class Favorites {
     return added;
   }
 
+  /** Removes the photo from the favorites. Does nothing if it is not one. */
+  remove(id: number): void {
+    if (!this.has(id)) {
+      return;
+    }
+    this._ids.update((ids) => ids.filter((other) => other !== id));
+    this.save();
+  }
+
   /** A failed write (blocked storage, full quota) keeps the favorites in memory for the session. */
   private save(): void {
     try {

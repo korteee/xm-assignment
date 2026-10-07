@@ -62,6 +62,29 @@ describe('Favorites', () => {
     expect(favorites.ids()).toEqual([3, 9, 7]);
   });
 
+  describe('remove', () => {
+    it('takes a favorite out of the list and saves the change', () => {
+      storage.setItem(KEY, '[7,3,9]');
+      const favorites = createFavorites();
+
+      favorites.remove(3);
+
+      expect(favorites.ids()).toEqual([7, 9]);
+      expect(storage.getItem(KEY)).toBe('[7,9]');
+    });
+
+    it('changes nothing for a photo that is not a favorite', () => {
+      storage.setItem(KEY, '[7,3]');
+      const favorites = createFavorites();
+      const setItem = vi.spyOn(storage, 'setItem');
+
+      favorites.remove(42);
+
+      expect(favorites.ids()).toEqual([7, 3]);
+      expect(setItem).not.toHaveBeenCalled();
+    });
+  });
+
   it('saves every change in localStorage', () => {
     const favorites = createFavorites();
 

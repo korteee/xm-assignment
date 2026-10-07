@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { routes } from '../../app.routes';
+import { LOCAL_STORAGE } from '../../core/local-storage';
+import { MemoryStorage } from '../../testing/memory-storage';
 import { AppHeader } from './app-header';
 
 describe('AppHeader', () => {
@@ -14,7 +16,12 @@ describe('AppHeader', () => {
     link(name)?.classList.contains('active') && link(name)?.getAttribute('aria-current') === 'page';
 
   beforeEach(async () => {
-    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+    // Photo 42 is a favorite: only favorites have a photo page.
+    const storage = new MemoryStorage();
+    storage.setItem('xm-photo-library.favorites.v1', '[42]');
+    TestBed.configureTestingModule({
+      providers: [provideRouter(routes), { provide: LOCAL_STORAGE, useValue: storage }],
+    });
     const fixture = TestBed.createComponent(AppHeader);
     header = fixture.nativeElement;
     navigate = async (url) => {

@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
+import { MATERIAL_ANIMATIONS } from '@angular/material/core';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { App } from './app';
 import { routes } from './app.routes';
 import { FavoritesPage } from './features/favorites/favorites-page';
 import { NotFoundPage } from './features/not-found/not-found-page';
@@ -14,9 +16,13 @@ import { MemoryStorage } from './testing/memory-storage';
 
 describe('routes', () => {
   let harness: RouterTestingHarness;
+  let storage: MemoryStorage;
 
   beforeEach(async () => {
-    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+    storage = new MemoryStorage();
+    TestBed.configureTestingModule({
+      providers: [provideRouter(routes), { provide: LOCAL_STORAGE, useValue: storage }],
+    });
     harness = await RouterTestingHarness.create();
   });
 
@@ -28,10 +34,26 @@ describe('routes', () => {
     await harness.navigateByUrl('/favorites', FavoritesPage);
   });
 
-  it('shows the photo detail page for the ID in /photos/:id', async () => {
-    const page = await harness.navigateByUrl('/photos/42', PhotoDetailPage);
+  it('shows the photo detail page for a favorite ID in /photos/:id', async () => {
+    TestBed.inject(Favorites).toggle(42);
 
-    expect(page.id).toBe('42');
+    await harness.navigateByUrl('/photos/42', PhotoDetailPage);
+
+    expect((harness.routeNativeElement as HTMLElement).querySelector('h1')?.textContent).toContain(
+      'Photo 42',
+    );
+  });
+
+  describe('for a photo that is not a favorite', () => {
+    it('shows the not-found page and keeps the URL', async () => {
+      await harness.navigateByUrl('/photos/42', NotFoundPage);
+
+      expect(TestBed.inject(Router).url).toBe('/photos/42');
+    });
+
+    it.each(['abc', '1.5', '-1'])('shows the not-found page for the ID "%s"', async (id) => {
+      await harness.navigateByUrl(`/photos/${id}`, NotFoundPage);
+    });
   });
 
   describe('for an unknown path', () => {
@@ -89,6 +111,52 @@ describe('Favorites route (integration)', () => {
     await harness.fixture.whenStable();
 
     expect(TestBed.inject(Router).url).toBe('/');
+  });
+});
+
+describe('Photo detail flow (integration)', () => {
+  it('opens a favorite from the list, removes it, and cannot reach it again', async () => {
+    const storage = new MemoryStorage();
+    storage.setItem('xm-photo-library.favorites.v1', '[7,3]');
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter(routes),
+        { provide: LOCAL_STORAGE, useValue: storage },
+        { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } },
+      ],
+    });
+    const router = TestBed.inject(Router);
+    const fixture = TestBed.createComponent(App);
+    const app: HTMLElement = fixture.nativeElement;
+    const settle = () => fixture.whenStable();
+    const hrefs = () =>
+      Array.from(app.querySelectorAll('app-photo-card a'), (a) => a.getAttribute('href'));
+
+    await router.navigateByUrl('/favorites');
+    await settle();
+    expect(hrefs()).toEqual(['/photos/3', '/photos/7']);
+
+    (app.querySelector('app-photo-card a') as HTMLAnchorElement).click();
+    await settle();
+
+    expect(router.url).toBe('/photos/3');
+    expect(app.querySelector('h1')?.textContent).toContain('Photo 3');
+    expect(app.querySelector('app-header a[aria-current="page"]')?.textContent).toContain(
+      'Favorites',
+    );
+
+    (app.querySelector('main button') as HTMLButtonElement).click();
+    await settle();
+
+    expect(router.url).toBe('/favorites');
+    expect(hrefs()).toEqual(['/photos/7']);
+
+    // What going Back to the removed photo does: the router matches the URL again.
+    await router.navigateByUrl('/photos/3');
+    await settle();
+
+    expect(app.querySelector('h1')?.textContent).toContain('Page not found');
+    expect(router.url).toBe('/photos/3');
   });
 });
 
