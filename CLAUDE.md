@@ -25,7 +25,7 @@ Feature pages stay thin and reuse the shared grid and card.
 ## Behavior decisions (settled, do not re-litigate)
 
 - **Photo identity:** photos are `https://picsum.photos/id/{n}/{w}/{h}`; the numeric `n` is the photo ID. The grid uses a small size, the detail page a larger one (about 1200px wide) for the same ID. Never use the random, ID-less `picsum.photos/200/300` URL.
-- **Fake API:** `getPhotos(page, limit)` returns an `Observable<Photo[]>` delayed by a random 200-300 ms. Page size 18. IDs must not repeat in the stream.
+- **Fake API:** `getPhotos({ page, limit })` (one typed params object) returns an `Observable<Photo[]>` delayed by a random 200-300 ms. Page size 18. IDs must not repeat in the stream.
 - **Infinite scroll:** a reusable directive built on `IntersectionObserver` and a sentinel at the bottom of the grid (`rootMargin` about 300px). Ignore triggers while a load is in flight. Show a loader while loading (`aria-live`) and a retry state on error.
 - **Stream state:** the loaded photos live in a root-scoped service signal, so switching Photos -> Favorites -> Photos keeps them. Enable router scroll position restoration.
 - **Favorites:** stored as photo IDs in `localStorage` under one versioned key; parse defensively (try/catch, validate shape). Persist across refresh.
