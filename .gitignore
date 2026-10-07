@@ -42,3 +42,9 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Local roadmap (OpenSpec changes are committed)
+/PLAN.md
+
+# Local AI tooling (OpenSpec commands and skills)
+/.claude/

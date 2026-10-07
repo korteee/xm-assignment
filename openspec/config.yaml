@@ -1,0 +1,26 @@
+schema: spec-driven
+
+context: |
+  Settled behavior and conventions live in CLAUDE.md; the brief is ASSIGNMENT.md.
+  Extra decisions not in CLAUDE.md:
+  - Photo IDs: the fake API shuffles every ID in 0-1084. Some IDs do not exist on
+    picsum; a card whose image fails to load shows a "Photo unavailable"
+    placeholder and cannot be favorited (aria-disabled).
+  - End of stream: when no IDs remain, getPhotos returns an empty page, the page
+    shows "You've seen them all" and stops observing the sentinel.
+  - Grid: 3 columns on desktop, 2 on tablet, 1 on phone.
+  - Favorites page: newest first; empty state is a message plus a link to Photos.
+
+rules:
+  proposal:
+    - One change is one reviewable step; state what is out of scope.
+  tasks:
+    - Order tasks as red-green-refactor cycles, one behavior per task (CLAUDE.md TDD).
+    - End with a verify task - full test suite green, ng lint clean, Prettier
+      formatted, and for UI changes a browser check (screenshot, no console
+      errors, axe/Lighthouse accessibility audit).
+
+operations:
+  apply:
+    guidance:
+      - Stop after the change for user review; commit only when the user asks.
