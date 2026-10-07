@@ -1,4 +1,4 @@
-# app-routing Specification
+﻿# app-routing Specification
 
 ## Purpose
 
@@ -8,7 +8,7 @@ The route table of the app: which URL shows which page, how pages are loaded, wh
 
 ### Requirement: Route table
 
-The app SHALL map `/` to the Photos page, `/favorites` to the Favorites page, and `/photos/:id` to the photo detail page.
+The app SHALL map `/` to the Photos page, `/favorites` to the Favorites page, and `/photos/:id` to the photo detail page when the ID is a current favorite. For any other ID, `/photos/:id` SHALL show the not-found page.
 
 #### Scenario: Photos route
 
@@ -22,8 +22,13 @@ The app SHALL map `/` to the Photos page, `/favorites` to the Favorites page, an
 
 #### Scenario: Detail route
 
-- **WHEN** the user opens `/photos/42`
+- **WHEN** photo `42` is a favorite and the user opens `/photos/42`
 - **THEN** the photo detail page is shown for ID `42`
+
+#### Scenario: Detail route for a photo that is not a favorite
+
+- **WHEN** photo `42` is not a favorite and the user opens `/photos/42`
+- **THEN** the not-found page is shown
 
 ### Requirement: Pages load on demand
 
