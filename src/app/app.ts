@@ -1,12 +1,18 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { AppHeader } from './shared/app-header/app-header';
 
 @Component({
-  imports: [RouterOutlet],
+  imports: [AppHeader, RouterOutlet],
   selector: 'app-root',
-  styleUrl: './app.scss',
-  templateUrl: './app.html',
+  styles: `
+    main {
+      padding: 16px;
+    }
+  `,
+  template: `
+    <app-header />
+    <main><router-outlet /></main>
+  `,
 })
-export class App {
-  protected readonly title = signal('xm-assignment');
-}
+export class App {}
